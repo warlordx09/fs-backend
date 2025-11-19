@@ -1,0 +1,76 @@
+# ------------------------------
+# Node Modules
+# ------------------------------
+node_modules/
+**/node_modules/
+
+# ------------------------------
+# Environment Files
+# ------------------------------
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ------------------------------
+# Logs
+# ------------------------------
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# ------------------------------
+# Next.js Build Output
+# ------------------------------
+.next/
+out/
+.next/cache/
+
+# ------------------------------
+# TypeScript
+# ------------------------------
+*.tsbuildinfo
+
+# ------------------------------
+# Dist / Build
+# ------------------------------
+dist/
+build/
+
+# ------------------------------
+# Backend Specific
+# ------------------------------
+backend/uploads/
+backend/tmp/
+backend/.cache/
+
+# ------------------------------
+# Frontend Specific
+# ------------------------------
+frontend/.parcel-cache/
+frontend/.vercel/
+
+# ------------------------------
+# OS Files
+# ------------------------------
+.DS_Store
+Thumbs.db
+
+# ------------------------------
+# IDE / Editor
+# ------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# ------------------------------
+# Misc
+# ------------------------------
+*.local
+*.pid

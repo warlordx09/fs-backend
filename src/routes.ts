@@ -68,10 +68,31 @@ router.put("/move", (req, res) => {
 });
 
 // Copy
-router.post("/copy", (req, res) => {
-    const { source, destination } = req.body;
-    vfs.copy(source, destination);
+// router.post("/copy", (req, res) => {
+//     const { source, destination } = req.body;
+//     vfs.copy(source, destination);
+//     res.json({ success: true });
+// });
+
+// Paste (copy or move)
+router.post("/paste", (req, res) => {
+  const { sourcePath, destinationPath, action } = req.body;
+  // action: "copy" or "move"
+
+  try {
+    if (action === "copy") {
+      vfs.copy(sourcePath, destinationPath);
+    } else if (action === "move") {
+      vfs.move(sourcePath, destinationPath);
+    } else {
+      return res.status(400).json({ error: "Invalid action. Use 'copy' or 'move'." });
+    }
+
     res.json({ success: true });
+  } catch (err) {
+    console.error("Paste error:", err);
+    res.status(500).json({ error: String(err) });
+  }
 });
 
 // Search

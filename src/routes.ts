@@ -22,28 +22,27 @@ router.post("/file", (req, res) => {
     res.json({ success: true });
 });
 
-// Read file
+
 router.get("/file", (req, res) => {
     const { path } = req.query;
     const data = vfs.readFile(String(path));
     res.json({ content: data });
 });
 
-// Write file
+
 router.put("/file", (req, res) => {
     const { path, content } = req.body;
     vfs.writeFile(path, content);
     res.json({ success: true });
 });
 
-// Delete file/folder
 router.delete("/node", (req, res) => {
     const { path } = req.body;
     vfs.delete(path);
     res.json({ success: true });
 });
 
-// Create directory
+
 router.post("/directory", (req, res) => {
     console.log("received!!")
     const { path, permissions } = req.body;
@@ -51,14 +50,14 @@ router.post("/directory", (req, res) => {
     res.json({ success: true });
 });
 
-// List directory
+
 router.get("/directory", (req, res) => {
     const { path } = req.query;
     const result = vfs.listDirectory(String(path));
     res.json(result);
 });
 
-// Rename (move with new name)
+
 router.put("/rename", (req, res) => {
     const { path, newName } = req.body;
 
@@ -76,17 +75,10 @@ router.put("/move", (req, res) => {
     res.json({ success: true });
 });
 
-// Copy
-// router.post("/copy", (req, res) => {
-//     const { source, destination } = req.body;
-//     vfs.copy(source, destination);
-//     res.json({ success: true });
-// });
 
-// Paste (copy or move)
 router.post("/paste", (req, res) => {
   const { sourcePath, destinationPath, action } = req.body;
-  // action: "copy" or "move"
+
 
   try {
     if (action === "copy") {
@@ -104,7 +96,7 @@ router.post("/paste", (req, res) => {
   }
 });
 
-// Search
+
 router.get("/search", (req, res) => {
     const { root, query } = req.query;
     const results = vfs.resolve(String(root)).fs.search(
@@ -114,7 +106,7 @@ router.get("/search", (req, res) => {
     res.json(results);
 });
 
-// Metadata
+
 router.get("/meta", (req, res) => {
     const { path } = req.query;
     const { fs, innerPath } = vfs.resolve(String(path));
@@ -122,13 +114,13 @@ router.get("/meta", (req, res) => {
     res.json(meta);
 });
 
-// Tree (from root FS only)
+
 router.get("/tree", (req, res) => {
     const { fs } = vfs.resolve("/");
     res.json(fs.getTree());
 });
 
-/* ========== MOUNT SYSTEM ========== */
+
 
 router.post("/mount", (req, res) => {
     const { mountPath, name, totalBlocks, blockSize } = req.body;
@@ -145,7 +137,7 @@ router.post("/unmount", (req, res) => {
     res.json({ success: true });
 });
 
-/* ========== CLI SIMULATION ========== */
+
 
 router.post("/cli", (req, res) => {
     const { command } = req.body;

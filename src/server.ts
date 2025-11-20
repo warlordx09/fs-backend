@@ -1,4 +1,4 @@
-// src/server.ts
+
 import express from "express";
 import bodyParser from "body-parser";
 import { router } from "./routes";
@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 
 
 
-app.use("/fs", router); // Important: all routes now start with /fs
+app.use("/fs", router);
 
 app.post("/fs/ai",async(req,res)=>{
     const {prompt} = req.body;

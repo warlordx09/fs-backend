@@ -1,35 +1,22 @@
-// src/filesystem.ts
+
 import * as pathPosix from "path";
 import * as fsNode from "fs";
 
-/**
- * File system simulator (Option A: OS-like features for PBL)
- *
- * - In-memory hierarchical tree (directories and file nodes)
- * - Block-based storage simulation with free-block bitmap
- * - Permissions (basic UNIX-like rwx string and owner)
- * - Metadata (createdAt, updatedAt, size)
- * - Persistence: saveToFile / loadFromFile (JSON)
- * - VFSManager: mount multiple FileSystem instances on mount points
- * - Useful methods for CLI/frontend integration
- */
 
-/* ----------------------- Types ----------------------- */
-
-export type ModeString = string; // e.g. "rwxr-xr--"
+export type ModeString = string;
 
 export interface BaseNodeMeta {
   createdAt: number;
   updatedAt: number;
   owner: string;
-  mode: ModeString; // "rwxr-xr-x"
+  mode: ModeString;
 }
 
 export interface FileNode {
   type: "file";
   name: string;
-  blocks: number[]; // block ids on the FS
-  size: number; // total bytes
+  blocks: number[];
+  size: number;
   meta: BaseNodeMeta;
 }
 
@@ -47,11 +34,11 @@ export interface FileSystemDump {
   totalBlocks: number;
   blockSize: number;
   freeBlockMap: number[];
-  blocks: string[]; // stored data per block (string)
+  blocks: string[];
   root: DirectoryNode;
 }
 
-/* ---------------------- Utilities --------------------- */
+
 
 function now(): number {
   return Date.now();
@@ -72,14 +59,13 @@ function normalizePath(p: string): string {
   return np.startsWith("/") ? np : "/" + np;
 }
 
-/* -------------------- FileSystem Class -------------------- */
 
 export class FileSystem {
   name: string;
   totalBlocks: number;
-  blockSize: number; // bytes per block
-  freeBlockMap: number[]; // 0=free,1=used
-  blocks: string[]; // data stored in each block (string). empty string means empty block
+  blockSize: number;
+  freeBlockMap: number[];
+  blocks: string[];
   root: DirectoryNode;
 
   constructor(opts?: { name?: string; totalBlocks?: number; blockSize?: number }) {
@@ -105,13 +91,13 @@ export class FileSystem {
     };
   }
 
-  /* ------------------- Block allocation ------------------- */
+
 
   allocateBlock(): number | null {
     const idx = this.freeBlockMap.indexOf(0);
     if (idx === -1) return null;
     this.freeBlockMap[idx] = 1;
-    this.blocks[idx] = ""; // initialize
+    this.blocks[idx] = "";
     return idx;
   }
 
@@ -125,9 +111,7 @@ export class FileSystem {
     return this.freeBlockMap.reduce((sum, v) => sum + (v === 0 ? 1 : 0), 0);
   }
 
-  /* -------------------- Path resolution -------------------- */
 
-  // returns parent directory node and the final name
   private resolveParent(p: string): { parent: DirectoryNode; name: string } {
     const normalized = normalizePath(p);
     const parts = normalized.split("/").filter(Boolean);
@@ -144,7 +128,7 @@ export class FileSystem {
     return { parent: current, name: parts[parts.length - 1] };
   }
 
-  // return node at path (root allowed)
+
   getNode(p: string): FSNode {
     const normalized = normalizePath(p);
     if (normalized === "/") return this.root;
@@ -168,7 +152,7 @@ export class FileSystem {
     }
   }
 
-  /* -------------------- Directory operations -------------------- */
+
 
   createDirectory(p: string, opts?: { owner?: string; mode?: ModeString }) {
     const normalized = normalizePath(p);
@@ -202,17 +186,17 @@ export class FileSystem {
     }));
   }
 
-  /* -------------------- File operations -------------------- */
+
 
   private createFileNode(name: string, content: string, owner = "root", mode?: ModeString): FileNode {
-    // allocate blocks for content
+
     const bs = this.blockSize;
     const blocks: number[] = [];
     let cursor = 0;
     while (cursor < content.length) {
       const b = this.allocateBlock();
       if (b === null) {
-        // rollback
+
         for (const bid of blocks) this.freeBlock(bid);
         throw new Error("Disk full while creating file");
       }
@@ -249,7 +233,7 @@ export class FileSystem {
   readFile(p: string): string {
     const node = this.getNode(p);
     if (node.type !== "file") throw new Error("Not a file");
-    // reconstruct from blocks
+
     return node.blocks.map((b) => this.blocks[b] ?? "").join("");
   }
 
@@ -266,7 +250,7 @@ export class FileSystem {
     while (cursor < content.length) {
       const b = this.allocateBlock();
       if (b === null) {
-        // rollback
+
         for (const bid of newBlocks) this.freeBlock(bid);
         throw new Error("Disk full while writing file");
       }
@@ -294,7 +278,7 @@ export class FileSystem {
     const { parent, name } = this.resolveParent(normalized);
     const node = parent.children[name];
     if (!node) throw new Error("Path not found");
-    // recursive delete if directory
+
     const deleteRec = (n: FSNode) => {
       if (n.type === "file") {
         for (const b of n.blocks) this.freeBlock(b);
@@ -327,29 +311,29 @@ export class FileSystem {
     const { parent: sParent, name: sName } = this.resolveParent(sn);
     const node = sParent.children[sName];
     if (!node) throw new Error("Source not found");
-    // destination may be directory or full path
+
     let destParent: DirectoryNode;
     let destName: string;
     try {
       const dnode = this.getNode(dn);
-      // if dst exists and is dir -> move into it, keep same name
+
       if (dnode.type === "directory") {
         destParent = dnode;
         destName = node.name;
       } else {
-        // dst exists and is file -> cannot move onto existing file
+
         throw new Error("Destination exists and is not a directory");
       }
     } catch {
-      // dst not found -> interpret as full path specifying new name
+
       const res = this.resolveParent(dn);
       destParent = res.parent;
       destName = res.name;
     }
     if (destParent.children[destName]) throw new Error("Destination entry already exists");
-    // detach from source parent
+
     delete sParent.children[sName];
-    // attach
+
     node.name = destName;
     destParent.children[destName] = node;
     sParent.meta.updatedAt = now();
@@ -359,7 +343,7 @@ export class FileSystem {
 
   copy(src: string, dst: string) {
     const node = this.getNode(src);
-    // dst must not already exist OR must be directory (then copy inside)
+
     const dn = normalizePath(dst);
     let destParent: DirectoryNode;
     let destName: string;
@@ -378,7 +362,7 @@ export class FileSystem {
     }
     if (destParent.children[destName]) throw new Error("Destination entry already exists");
 
-    // deep copy node; for files allocate new blocks and copy data
+
     const cloneRec = (n: FSNode): FSNode => {
       if (n.type === "file") {
         const content = n.blocks.map((b) => this.blocks[b] ?? "").join("");
@@ -452,7 +436,6 @@ export class FileSystem {
     this.root = this.createEmptyDir("/");
   }
 
-  /* -------------------- Persistence -------------------- */
 
   export(): FileSystemDump {
     return {
@@ -490,12 +473,7 @@ export class FileSystem {
   }
 }
 
-/* -------------------- VFSManager -------------------- */
 
-/**
- * VFSManager maintains multiple FileSystem instances mounted at mount points.
- * It resolves a vfs path (e.g. /, /mnt/usb/docs.txt) to an underlying fs and inner path.
- */
 export class VFSManager {
   private mounts: { mountPoint: string; fs: FileSystem }[] = [];
 
@@ -532,21 +510,16 @@ export class VFSManager {
   }
 
   private sortMounts() {
-    // longest mountPoint first for longest-prefix matching
+
     this.mounts.sort((a, b) => b.mountPoint.length - a.mountPoint.length);
   }
 
-  /**
-   * Resolve a vfs path to a mounted fs and inner path inside it.
-   * Example:
-   *  - mounts: [ { "/" -> fsRoot }, { "/mnt/usb" -> fsUsb } ]
-   *  - resolve("/mnt/usb/docs/a.txt") -> { fs: fsUsb, inner: "/docs/a.txt", mountPoint: "/mnt/usb" }
-   */
+
   resolve(vfsPath: string): { fs: FileSystem; innerPath: string; mountPoint: string } {
     let p = normalizePath(vfsPath);
     for (const m of this.mounts) {
       if (m.mountPoint === "/") {
-        // root matches everything; keep checking for longer matches first
+
         continue;
       }
       if (p === m.mountPoint || p.startsWith(m.mountPoint + "/")) {
@@ -554,12 +527,12 @@ export class VFSManager {
         return { fs: m.fs, innerPath: normalizePath(inner), mountPoint: m.mountPoint };
       }
     }
-    // fallback to root mount
+
     const rootMount = this.mounts.find((m) => m.mountPoint === "/")!;
     return { fs: rootMount.fs, innerPath: p, mountPoint: "/" };
   }
 
-  // convenience wrappers
+
   createDirectory(vfsPath: string, opts?: { owner?: string; mode?: ModeString }) {
     const { fs, innerPath } = this.resolve(vfsPath);
     return fs.createDirectory(innerPath, opts);
@@ -605,4 +578,3 @@ export class VFSManager {
   }
 }
 
-/* -------------------- End of Module -------------------- */

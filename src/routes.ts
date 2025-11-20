@@ -4,9 +4,18 @@ import { VFSManager, FileSystem } from "./filesystem";
 export const router = Router();
 const vfs = new VFSManager();
 
-/* ========== BASIC FS ROUTES ========== */
-
-// Create file
+router.get("/disk-usage", (req, res) => {
+  const { path } = req.query;
+  try {
+    const { fs } = vfs.resolve(String(path));
+    const totalBytes = fs.totalBlocks * fs.blockSize;
+    const usedBytes = fs.blocks.reduce((sum, b) => sum + (b ? b.length : 0), 0);
+    const freeBytes = totalBytes - usedBytes;
+    res.json({ totalBytes, usedBytes, freeBytes });
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
 router.post("/file", (req, res) => {
     const { path, content, permissions } = req.body;
     vfs.createFile(path, content, { mode: permissions });

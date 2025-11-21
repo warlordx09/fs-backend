@@ -9,8 +9,6 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-
-
 app.use("/fs", router);
 
 app.post("/fs/ai",async(req,res)=>{
@@ -64,7 +62,7 @@ ${prompt}
 
 
      const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY || "AIzaSyDEvAUdgUGdfq2dfDl7ty5WL4VNqG5DXTw",
+    apiKey: process.env.GEMINI_API_KEY || "AIzaSyCJmo7A6Fc6jc881a9MMuSG6xgur70pgxw",
   });
   const tools = [
     {
